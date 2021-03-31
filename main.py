@@ -3,6 +3,23 @@ from PIL import ImageTk, Image
 from tkinter import messagebox
 import random
 import pyperclip
+import json
+
+
+def find_password():
+    website_name = website.get()
+    try:
+        with open("password_manager/password_manager_data.json", "r") as file:
+            websites_dict = json.load(file)
+            try:
+                email_username_for_website = websites_dict[website_name]["email"]
+                password_for_website = websites_dict[website_name]["password"]
+                messagebox.showinfo(title=website_name, message=f"Email/Username: {email_username_for_website}\n"
+                                                                f"Password: {password_for_website}")
+            except KeyError:
+                messagebox.showwarning(title="Error", message="No Details for the website exists.")
+    except FileNotFoundError:
+        messagebox.showwarning(title="Error", message="No Data File Found")
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
 
@@ -32,13 +49,32 @@ def save():
     site = website.get()
     email_username_input = email_username.get()
     the_password = password.get()
+    new_data = {
+        site: {
+            "email": email_username_input,
+            "password": the_password,
+        }
+    }
     if len(site) == 0 or len(the_password) == 0:
         messagebox.showwarning(title="Warning", message="Do not leave any fields empty.")
     else:
-        question = f"Are these correct? \nEmail/Username: {email_username_input} \nPassword: {the_password}"
-        if messagebox.askyesno(title=site, message=question):
-            with open("password_manager_data.txt", "a") as file:
-                file.write(f"{site} | Email/Username = {email_username_input} | Password = {the_password}\n")
+        try:
+            with open("password_manager/password_manager_data.json", "r") as file:
+                data = json.load(file)
+                data.update(new_data)
+        except FileNotFoundError:
+            with open("password_manager/password_manager_data.json", "w"):
+                pass
+
+            with open("password_manager/password_manager_data.json", "r") as file:
+                data = json.load(file)
+                data.update(new_data)
+
+            with open("password_manager/password_manager_data.json", "w") as file:
+                file.write("{}")
+        else:
+            with open("password_manager/password_manager_data.json", "w") as file:
+                json.dump(data, file, indent=4)
                 website.delete(0, END)
                 password.delete(0, END)
 
@@ -56,9 +92,12 @@ canvas.create_image(100, 100, image=logo)
 website_writing = Label(text="Website:")
 website_writing.grid(row=1, column=0)
 
-website = Entry(width=35)
-website.grid(row=1, column=1, columnspan=2)
+website = Entry(width=21)
+website.grid(row=1, column=1)
 website.focus()
+
+search_button = Button(text="Search", command=find_password)
+search_button.grid(row=1, column=2)
 
 email_username_writing = Label(text="Email/Username:")
 email_username_writing.grid(row=2, column=0)
